@@ -1,0 +1,79 @@
+{
+  "ownerUserId": "USR-02",
+  "settings": {
+    "businessName": "FixFlow Pro",
+    "branchName": "Laura Campos - Sucursal Centro",
+    "phone": "+52 55 4567 1122",
+    "whatsapp": "+52 55 4567 1122",
+    "address": "Av. Reforma 245, Ciudad de Mexico",
+    "currency": "MXN",
+    "language": "es-MX",
+    "publicTracking": true,
+    "lowStockAlert": 5,
+    "ticketHeader": "FixFlow Pro | Taller especializado",
+    "whatsappTemplate": "Hola {{cliente}}, tu equipo {{modelo}} cambio a estado {{estado}}."
+  },
+  "inventory": [
+    {
+      "id": "INV-201",
+      "name": "Bateria Samsung S22",
+      "sku": "BAT-SS22-092",
+      "category": "Baterias",
+      "stock": 18,
+      "minStock": 6,
+      "cost": 690,
+      "supplierId": "SUP-02"
+    }
+  ],
+  "suppliers": [
+    {
+      "id": "SUP-02",
+      "name": "MicroChip Solutions",
+      "specialty": "Microsoldadura y conectores",
+      "distance": "1.2 km",
+      "rating": 4.5,
+      "phone": "+52 55 8899 1100"
+    }
+  ],
+  "orders": [
+    {
+      "id": "RO-9901",
+      "customer": "Sarah Jenkins",
+      "phone": "+52 55 1200 4010",
+      "whatsapp": "+52 55 1200 4010",
+      "brand": "Apple",
+      "model": "iPad Air M1",
+      "imei": "N/A",
+      "issue": "Cambio de centro de carga.",
+      "status": "ready",
+      "technician": "Laura Campos",
+      "estimatedTotal": 2650,
+      "deposit": 1200,
+      "createdAt": "2026-03-15T09:20:00",
+      "eta": "2026-03-18",
+      "notes": [
+        {
+          "at": "2026-03-15T09:20:00",
+          "text": "Cliente autorizo reemplazo de conector."
+        }
+      ],
+      "timeline": [
+        {
+          "label": "Recibido",
+          "at": "2026-03-15T09:20:00",
+          "state": "done"
+        },
+        {
+          "label": "En reparacion",
+          "at": "2026-03-16T14:15:00",
+          "state": "done"
+        },
+        {
+          "label": "Listo para entrega",
+          "at": "2026-03-17T18:45:00",
+          "state": "current"
+        }
+      ]
+    }
+  ]
+}

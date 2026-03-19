@@ -1,0 +1,15 @@
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+
+expo-mobile/node_modules/
+expo-mobile/.expo/
+expo-mobile/.env
+expo-mobile/android/
+expo-mobile/ios/
+expo-mobile/package-lock.json
+
+.DS_Store
+Thumbs.db

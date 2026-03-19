@@ -1,0 +1,21 @@
+{
+  "defaultUserId": "USR-01",
+  "users": [
+    {
+      "id": "USR-01",
+      "name": "Juan Delgado",
+      "role": "Administrador",
+      "email": "tecnico@fixflow.pro",
+      "password": "123456",
+      "active": true
+    },
+    {
+      "id": "USR-02",
+      "name": "Laura Campos",
+      "role": "Tecnico",
+      "email": "laura@fixflow.pro",
+      "password": "123456",
+      "active": true
+    }
+  ]
+}

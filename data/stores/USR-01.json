@@ -1,0 +1,79 @@
+{
+  "ownerUserId": "USR-01",
+  "settings": {
+    "businessName": "FixFlow Pro",
+    "branchName": "Juan Delgado - Sucursal Centro",
+    "phone": "+52 55 4567 1122",
+    "whatsapp": "+52 55 4567 1122",
+    "address": "Av. Reforma 245, Ciudad de Mexico",
+    "currency": "MXN",
+    "language": "es-MX",
+    "publicTracking": true,
+    "lowStockAlert": 5,
+    "ticketHeader": "FixFlow Pro | Taller especializado",
+    "whatsappTemplate": "Hola {{cliente}}, tu equipo {{modelo}} cambio a estado {{estado}}."
+  },
+  "inventory": [
+    {
+      "id": "INV-101",
+      "name": "Pantalla OLED iPhone 13 Pro",
+      "sku": "SCR-I13P-001",
+      "category": "Pantallas",
+      "stock": 2,
+      "minStock": 4,
+      "cost": 2490,
+      "supplierId": "SUP-01"
+    }
+  ],
+  "suppliers": [
+    {
+      "id": "SUP-01",
+      "name": "Global Tech Parts",
+      "specialty": "Pantallas y tapas",
+      "distance": "0.8 km",
+      "rating": 4.8,
+      "phone": "+52 55 1100 2233"
+    }
+  ],
+  "orders": [
+    {
+      "id": "RO-8842",
+      "customer": "Alex Rivera",
+      "phone": "+52 55 1200 4001",
+      "whatsapp": "+52 55 1200 4001",
+      "brand": "Apple",
+      "model": "iPhone 14 Pro",
+      "imei": "352674108945230",
+      "issue": "Pantalla rota y touch intermitente.",
+      "status": "in_progress",
+      "technician": "Juan Delgado",
+      "estimatedTotal": 4890,
+      "deposit": 800,
+      "createdAt": "2026-03-16T10:00:00",
+      "eta": "2026-03-19",
+      "notes": [
+        {
+          "at": "2026-03-16T10:00:00",
+          "text": "Equipo recibido con display estrellado."
+        }
+      ],
+      "timeline": [
+        {
+          "label": "Recibido",
+          "at": "2026-03-16T10:00:00",
+          "state": "done"
+        },
+        {
+          "label": "En reparacion",
+          "at": "2026-03-17T12:30:00",
+          "state": "current"
+        },
+        {
+          "label": "Listo para entrega",
+          "at": "",
+          "state": "pending"
+        }
+      ]
+    }
+  ]
+}
