@@ -2,7 +2,7 @@
   "ownerUserId": "USR-01",
   "settings": {
     "businessName": "FixFlow Pro",
-    "branchName": "Juan Delgado - Sucursal Centro",
+    "branchName": "compucellsirius - Sucursal Centro",
     "phone": "+52 55 4567 1122",
     "whatsapp": "+52 55 4567 1122",
     "address": "Av. Reforma 245, Ciudad de Mexico",
@@ -46,7 +46,7 @@
       "imei": "352674108945230",
       "issue": "Pantalla rota y touch intermitente.",
       "status": "in_progress",
-      "technician": "Juan Delgado",
+      "technician": "compucellsirius",
       "estimatedTotal": 4890,
       "deposit": 800,
       "createdAt": "2026-03-16T10:00:00",
