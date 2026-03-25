@@ -1,16 +1,16 @@
 {
   "ownerUserId": "USR-01",
   "settings": {
-    "businessName": "FixFlow Pro",
-    "branchName": "compucellsirius - Sucursal Centro",
-    "phone": "+52 55 4567 1122",
-    "whatsapp": "+52 55 4567 1122",
-    "address": "Av. Reforma 245, Ciudad de Mexico",
+    "businessName": "",
+    "branchName": "",
+    "phone": "",
+    "whatsapp": "",
+    "address": "",
     "currency": "MXN",
     "language": "es-MX",
     "publicTracking": true,
     "lowStockAlert": 5,
-    "ticketHeader": "FixFlow Pro | Taller especializado",
+    "ticketHeader": "",
     "whatsappTemplate": "Hola {{cliente}}, tu equipo {{modelo}} cambio a estado {{estado}}."
   },
   "inventory": [
@@ -28,11 +28,33 @@
   "suppliers": [
     {
       "id": "SUP-01",
-      "name": "Global Tech Parts",
-      "specialty": "Pantallas y tapas",
-      "distance": "0.8 km",
+      "name": "Capital Movil - Matriz Bolivar",
+      "specialty": "Pantallas, herramientas y refacciones",
+      "distance": "Centro Historico CDMX",
       "rating": 4.8,
-      "phone": "+52 55 1100 2233"
+      "phone": "56 3621 6962",
+      "address": "Simon Bolivar 85, Centro Historico, CDMX",
+      "website": "https://www.capitalmovil.com.mx/pages/sucursales"
+    },
+    {
+      "id": "SUP-02",
+      "name": "Capital Movil - Plaza Central",
+      "specialty": "Refacciones y accesorios para celulares",
+      "distance": "Eje Central 87, CDMX",
+      "rating": 4.7,
+      "phone": "56 3353 8311",
+      "address": "Plaza Central, Eje Central Lazaro Cardenas 87, Local 117-B, Centro, CDMX",
+      "website": "https://www.capitalmovil.com.mx/pages/sucursales"
+    },
+    {
+      "id": "SUP-03",
+      "name": "IPLUS Refacciones - Salvador Meave",
+      "specialty": "Displays y refacciones para smartphone",
+      "distance": "Zona Meave, CDMX",
+      "rating": 4.7,
+      "phone": "55 7470 7607",
+      "address": "Plaza Salvador Meave, Local 8B y 9B, Centro, CDMX",
+      "website": "https://iplusrefacciones.com/sucursales"
     }
   ],
   "orders": [

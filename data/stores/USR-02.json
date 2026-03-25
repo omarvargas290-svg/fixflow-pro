@@ -1,16 +1,16 @@
 {
   "ownerUserId": "USR-02",
   "settings": {
-    "businessName": "FixFlow Pro",
-    "branchName": "Laura Campos - Sucursal Centro",
-    "phone": "+52 55 4567 1122",
-    "whatsapp": "+52 55 4567 1122",
-    "address": "Av. Reforma 245, Ciudad de Mexico",
+    "businessName": "",
+    "branchName": "",
+    "phone": "",
+    "whatsapp": "",
+    "address": "",
     "currency": "MXN",
     "language": "es-MX",
     "publicTracking": true,
     "lowStockAlert": 5,
-    "ticketHeader": "FixFlow Pro | Taller especializado",
+    "ticketHeader": "",
     "whatsappTemplate": "Hola {{cliente}}, tu equipo {{modelo}} cambio a estado {{estado}}."
   },
   "inventory": [

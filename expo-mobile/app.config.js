@@ -9,7 +9,7 @@ module.exports = () => ({
       policy: "appVersion",
     },
     orientation: "portrait",
-    platforms: ["android", "ios"],
+    platforms: ["android", "ios", "web"],
     icon: "./assets/icon.png",
     jsEngine: "hermes",
     userInterfaceStyle: "light",
@@ -24,6 +24,10 @@ module.exports = () => ({
       backgroundColor: "#1152d4",
     },
     assetBundlePatterns: ["**/*"],
+    web: {
+      bundler: "metro",
+      favicon: "./assets/icon.png",
+    },
     android: {
       adaptiveIcon: {
         foregroundImage: "./assets/adaptive-icon.png",

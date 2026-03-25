@@ -6,16 +6,20 @@
       "name": "compucellsirius",
       "role": "Administrador",
       "email": "omarvargas290@gmail.com",
-      "password": "Andy2706",
-      "active": true
+      "active": true,
+      "passwordHash": "10d4e7458910baf721b9006adf6d9760182e89061f3672d3ace64fa57c7f334b79e5399650ff1e83d3f14783b2bec229a00e5bb30e2e59985633b1f08e7863b1",
+      "passwordSalt": "b9af7a0fbcc11e2cff773d694f081e50",
+      "passwordUpdatedAt": "2026-03-21T20:19:35.151Z"
     },
     {
       "id": "USR-02",
       "name": "Laura Campos",
       "role": "Tecnico",
       "email": "laura@fixflow.pro",
-      "password": "123456",
-      "active": true
+      "active": true,
+      "passwordHash": "701133d69d1a30cdfa661c0bdb5f571e729a3b545122003eb656c4255fbb38f73f3eb8c935e5fa0bb6f252f7be9c34bbe8154f632d9c0f3feea2d17fc2d0ac31",
+      "passwordSalt": "9207513d62a546d43a415448720c083d",
+      "passwordUpdatedAt": "2026-03-21T20:19:35.184Z"
     }
   ]
 }
