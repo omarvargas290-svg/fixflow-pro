@@ -462,6 +462,12 @@ function AppContent() {
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
   const [selectedOrderId, setSelectedOrderId] = useState("");
   const [orderQuery, setOrderQuery] = useState("");
+  const [orderStatusFilter, setOrderStatusFilter] = useState("all");
+  const [orderTechnicianFilter, setOrderTechnicianFilter] = useState("all");
+  const [orderDateFrom, setOrderDateFrom] = useState("");
+  const [orderDateTo, setOrderDateTo] = useState("");
+  const [inventoryQuery, setInventoryQuery] = useState("");
+  const [inventoryStockFilter, setInventoryStockFilter] = useState<"all" | "low">("all");
   const [ordersLimit, setOrdersLimit] = useState(20);
   const [inventoryLimit, setInventoryLimit] = useState(30);
   const [usersLimit, setUsersLimit] = useState(20);
@@ -536,7 +542,11 @@ function AppContent() {
 
   useEffect(() => {
     setOrdersLimit(20);
-  }, [orderQuery]);
+  }, [orderQuery, orderStatusFilter, orderTechnicianFilter, orderDateFrom, orderDateTo]);
+
+  useEffect(() => {
+    setInventoryLimit(30);
+  }, [inventoryQuery, inventoryStockFilter]);
 
   const selectedOrder = useMemo(
     () => (Array.isArray(store?.orders) ? store!.orders.find((order) => order.id === selectedOrderId) || store!.orders[0] || null : null),
@@ -546,19 +556,60 @@ function AppContent() {
   const filteredOrders = useMemo(() => {
     const query = orderQuery.trim().toLowerCase();
     const source = Array.isArray(store?.orders) ? store!.orders : [];
-    if (!query) return source;
-    return source.filter((order) =>
-      [order.id, order.customer, order.brand, order.model, order.phone, order.whatsapp]
+    return source.filter((order) => {
+      const matchesQuery = !query || [order.id, order.customer, order.brand, order.model, order.phone, order.whatsapp]
         .join(" ")
         .toLowerCase()
-        .includes(query)
-    );
-  }, [orderQuery, store]);
+        .includes(query);
+      const matchesStatus = orderStatusFilter === "all" || order.status === orderStatusFilter;
+      const matchesTechnician = orderTechnicianFilter === "all" || String(order.technician || "") === orderTechnicianFilter;
+      const createdDate = String(order.createdAt || "").slice(0, 10);
+      const matchesFrom = !orderDateFrom || (createdDate && createdDate >= orderDateFrom);
+      const matchesTo = !orderDateTo || (createdDate && createdDate <= orderDateTo);
+      return matchesQuery && matchesStatus && matchesTechnician && matchesFrom && matchesTo;
+    });
+  }, [orderQuery, orderStatusFilter, orderTechnicianFilter, orderDateFrom, orderDateTo, store]);
+
+  const technicianOptions = useMemo(() => {
+    const source = Array.isArray(store?.orders) ? store!.orders : [];
+    return Array.from(new Set(source.map((order) => String(order.technician || "").trim()).filter(Boolean)));
+  }, [store]);
+
+  const dashboardSummary = useMemo(() => {
+    const source = Array.isArray(store?.orders) ? store!.orders : [];
+    const estimated = source.reduce((sum, order) => sum + Number(order.estimatedTotal || 0), 0);
+    const deposits = source.reduce((sum, order) => sum + Number(order.deposit || 0), 0);
+    const balance = estimated - deposits;
+    const delivered = source.filter((order) => order.status === "delivered").length;
+    const ready = source.filter((order) => order.status === "ready").length;
+    return { estimated, deposits, balance, delivered, ready };
+  }, [store]);
+
+  const dashboardStatusBars = useMemo(() => {
+    const source = Array.isArray(store?.orders) ? store!.orders : [];
+    const total = source.length || 1;
+    const items = [
+      { key: "received", label: "Recibidas", count: source.filter((order) => order.status === "received").length, color: palette.warning },
+      { key: "in_progress", label: "En reparacion", count: source.filter((order) => order.status === "in_progress").length, color: palette.primary },
+      { key: "ready", label: "Listas", count: source.filter((order) => order.status === "ready").length, color: palette.success },
+      { key: "delivered", label: "Entregadas", count: source.filter((order) => order.status === "delivered").length, color: palette.accent },
+    ];
+    return items.map((item) => ({ ...item, percent: Math.max(8, Math.round((item.count / total) * 100)) }));
+  }, [palette, store]);
 
   const visibleOrders = useMemo(() => filteredOrders.slice(0, ordersLimit), [filteredOrders, ordersLimit]);
+  const filteredInventory = useMemo(() => {
+    const query = inventoryQuery.trim().toLowerCase();
+    const source = Array.isArray(store?.inventory) ? store!.inventory : [];
+    return source.filter((item) => {
+      const matchesQuery = !query || [item.name, item.sku, item.category, item.supplierId].join(" ").toLowerCase().includes(query);
+      const matchesStock = inventoryStockFilter === "all" || item.stock <= item.minStock;
+      return matchesQuery && matchesStock;
+    });
+  }, [inventoryQuery, inventoryStockFilter, store]);
   const visibleInventory = useMemo(
-    () => (Array.isArray(store?.inventory) ? store!.inventory.slice(0, inventoryLimit) : []),
-    [inventoryLimit, store]
+    () => filteredInventory.slice(0, inventoryLimit),
+    [filteredInventory, inventoryLimit]
   );
   const visibleUsers = useMemo(() => users.slice(0, usersLimit), [users, usersLimit]);
 
@@ -882,6 +933,75 @@ function AppContent() {
       }
     } catch {
       Alert.alert("Ticket", "No se pudo generar el ticket");
+    }
+  }
+
+  async function onExportOrdersReport() {
+    if (!store) return;
+
+    const rows = filteredOrders.map((order) => `
+      <tr>
+        <td>${escapeHtml(order.id)}</td>
+        <td>${escapeHtml(order.customer)}</td>
+        <td>${escapeHtml(`${order.brand} ${order.model}`)}</td>
+        <td>${escapeHtml(statusLabel(order.status))}</td>
+        <td>${escapeHtml(order.technician || "Sin asignar")}</td>
+        <td>${escapeHtml(formatDate(order.createdAt))}</td>
+        <td>${escapeHtml(money(order.estimatedTotal, store.settings.currency))}</td>
+      </tr>
+    `).join("");
+
+    const html = `<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      @page { size: letter portrait; margin: 14mm; }
+      body { font-family: Arial, sans-serif; color: #111; font-size: 12px; }
+      h1, p { margin: 0 0 8px; }
+      .meta { color: #555; margin-bottom: 14px; }
+      table { width: 100%; border-collapse: collapse; }
+      th, td { border: 1px solid #d1d5db; padding: 8px; text-align: left; }
+      th { background: #eef2ff; }
+    </style>
+  </head>
+  <body>
+    <h1>${escapeHtml(store.settings.businessName || "FixFlow")}</h1>
+    <p class="meta">Reporte de ordenes | Estado: ${escapeHtml(orderStatusFilter)} | Tecnico: ${escapeHtml(orderTechnicianFilter)} | Desde: ${escapeHtml(orderDateFrom || "N/D")} | Hasta: ${escapeHtml(orderDateTo || "N/D")}</p>
+    <table>
+      <thead>
+        <tr>
+          <th>Folio</th>
+          <th>Cliente</th>
+          <th>Equipo</th>
+          <th>Estado</th>
+          <th>Tecnico</th>
+          <th>Fecha</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </body>
+</html>`;
+
+    try {
+      if (Platform.OS === "web") {
+        await Print.printAsync({ html });
+        return;
+      }
+      const file = await Print.printToFileAsync({ html });
+      const canShare = await Sharing.isAvailableAsync();
+      if (canShare) {
+        await Sharing.shareAsync(file.uri, {
+          mimeType: "application/pdf",
+          dialogTitle: "Compartir reporte de ordenes",
+        });
+      } else {
+        Alert.alert("Ordenes", "Se genero el reporte, pero compartir no esta disponible.");
+      }
+    } catch {
+      Alert.alert("Ordenes", "No se pudo exportar el reporte");
     }
   }
 
@@ -1278,6 +1398,10 @@ function AppContent() {
               <Card title="Listas" value={String(store.orders.filter((o) => o.status === "ready").length)} width={metricCardWidth} palette={palette} />
               <Card title="Entregadas" value={String(store.orders.filter((o) => o.status === "delivered").length)} width={metricCardWidth} palette={palette} />
               <Card title="Stock bajo" value={String(store.inventory.filter((i) => i.stock <= i.minStock).length)} width={metricCardWidth} palette={palette} />
+              <Card title="Facturacion estimada" value={money(dashboardSummary.estimated, store.settings.currency)} width={metricCardWidth} palette={palette} />
+              <Card title="Anticipos cobrados" value={money(dashboardSummary.deposits, store.settings.currency)} width={metricCardWidth} palette={palette} />
+              <Card title="Saldo pendiente" value={money(dashboardSummary.balance, store.settings.currency)} width={metricCardWidth} palette={palette} />
+              <Card title="Listas / Entregadas" value={`${dashboardSummary.ready} / ${dashboardSummary.delivered}`} width={metricCardWidth} palette={palette} />
               <View style={[styles.featurePanel, cardSurfaceStyle]}>
                 <Text style={[styles.cardTitle, cardTitleThemeStyle]}>Accesos rapidos</Text>
                 <Text style={[styles.cardText, cardTextThemeStyle]}>Abre las tareas principales del dia sin moverte entre varios modulos.</Text>
@@ -1296,6 +1420,23 @@ function AppContent() {
                   </Pressable>
                 </View>
               </View>
+              <View style={[styles.featurePanel, cardSurfaceStyle]}>
+                <Text style={[styles.cardTitle, cardTitleThemeStyle]}>Flujo operativo</Text>
+                <Text style={[styles.cardText, cardTextThemeStyle]}>Distribucion actual de ordenes por estado.</Text>
+                <View style={styles.progressStack}>
+                  {dashboardStatusBars.map((item) => (
+                    <View key={item.key} style={styles.progressItem}>
+                      <View style={styles.progressHeader}>
+                        <Text style={[styles.cardTitle, { color: palette.text }]}>{item.label}</Text>
+                        <Text style={[styles.cardText, { color: palette.textMuted }]}>{item.count}</Text>
+                      </View>
+                      <View style={[styles.progressTrack, { backgroundColor: palette.surfaceAlt }]}>
+                        <View style={[styles.progressFill, { backgroundColor: item.color, width: `${item.percent}%` as `${number}%` }]} />
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              </View>
             </View>
           )}
 
@@ -1310,10 +1451,93 @@ function AppContent() {
               placeholderTextColor={placeholderColor}
             />
             <View style={styles.responsiveRow}>
+              <TextInput
+                style={[styles.input, inputThemeStyle, { width: splitColumnWidth }]}
+                value={orderDateFrom}
+                onChangeText={setOrderDateFrom}
+                placeholder="Desde YYYY-MM-DD"
+                placeholderTextColor={placeholderColor}
+              />
+              <TextInput
+                style={[styles.input, inputThemeStyle, { width: splitColumnWidth }]}
+                value={orderDateTo}
+                onChangeText={setOrderDateTo}
+                placeholder="Hasta YYYY-MM-DD"
+                placeholderTextColor={placeholderColor}
+              />
+            </View>
+            <View style={styles.responsiveRow}>
               <View style={[styles.responsiveColumn, { width: splitColumnWidth }]}>
                 <View style={[styles.sectionPanelHeader, { backgroundColor: palette.surface, borderColor: palette.border }]}>
                   <Text style={[styles.cardTitle, cardTitleThemeStyle]}>Ordenes existentes</Text>
                   <Text style={[styles.cardText, cardTextThemeStyle]}>Consulta, filtra y abre una orden para revisarla o editarla.</Text>
+                </View>
+                <View style={[styles.filterBar, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+                  <View style={styles.navRow}>
+                    {[
+                      { id: "all", label: "Todas" },
+                      { id: "received", label: "Recibidas" },
+                      { id: "in_progress", label: "En reparacion" },
+                      { id: "ready", label: "Listas" },
+                      { id: "delivered", label: "Entregadas" },
+                    ].map((filter) => (
+                      <Pressable
+                        key={filter.id}
+                        style={[
+                          styles.navButton,
+                          { backgroundColor: palette.secondary, borderColor: palette.border },
+                          orderStatusFilter === filter.id && { backgroundColor: palette.primary, borderColor: palette.primary },
+                        ]}
+                        onPress={() => setOrderStatusFilter(filter.id)}
+                      >
+                        <Text style={[styles.navText, { color: palette.text }, orderStatusFilter === filter.id && { color: palette.primaryText }]}>{filter.label}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                  {technicianOptions.length ? (
+                    <View style={styles.navRow}>
+                      <Pressable
+                        style={[
+                          styles.navButton,
+                          { backgroundColor: palette.secondary, borderColor: palette.border },
+                          orderTechnicianFilter === "all" && { backgroundColor: palette.primary, borderColor: palette.primary },
+                        ]}
+                        onPress={() => setOrderTechnicianFilter("all")}
+                      >
+                        <Text style={[styles.navText, { color: palette.text }, orderTechnicianFilter === "all" && { color: palette.primaryText }]}>Todos los tecnicos</Text>
+                      </Pressable>
+                      {technicianOptions.map((technician) => (
+                        <Pressable
+                          key={technician}
+                          style={[
+                            styles.navButton,
+                            { backgroundColor: palette.secondary, borderColor: palette.border },
+                            orderTechnicianFilter === technician && { backgroundColor: palette.primary, borderColor: palette.primary },
+                          ]}
+                          onPress={() => setOrderTechnicianFilter(technician)}
+                        >
+                          <Text style={[styles.navText, { color: palette.text }, orderTechnicianFilter === technician && { color: palette.primaryText }]}>{technician}</Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  ) : null}
+                  <View style={styles.navRow}>
+                    <Pressable style={[styles.secondaryButton, neutralButtonThemeStyle]} onPress={onExportOrdersReport}>
+                      <Text style={[styles.secondaryText, neutralTextThemeStyle]}>Exportar reporte</Text>
+                    </Pressable>
+                    <Pressable
+                      style={[styles.secondaryButton, secondaryButtonThemeStyle]}
+                      onPress={() => {
+                        setOrderQuery("");
+                        setOrderStatusFilter("all");
+                        setOrderTechnicianFilter("all");
+                        setOrderDateFrom("");
+                        setOrderDateTo("");
+                      }}
+                    >
+                      <Text style={[styles.secondaryText, secondaryTextThemeStyle]}>Limpiar filtros</Text>
+                    </Pressable>
+                  </View>
                 </View>
                 {sidebarEnabled ? (
                   <View style={[styles.tableHeaderRow, { backgroundColor: palette.surfaceAlt, borderColor: palette.border }]}>
@@ -1471,8 +1695,39 @@ function AppContent() {
         {view === "inventory" && (
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, cardTitleThemeStyle]}>Inventario</Text>
+            <TextInput
+              style={[styles.input, inputThemeStyle]}
+              value={inventoryQuery}
+              onChangeText={setInventoryQuery}
+              placeholder="Buscar por nombre, SKU o categoria"
+              placeholderTextColor={placeholderColor}
+            />
             <View style={styles.responsiveRow}>
               <View style={[styles.responsiveColumn, { width: splitColumnWidth }]}>
+                <View style={[styles.sectionPanelHeader, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+                  <Text style={[styles.cardTitle, cardTitleThemeStyle]}>Repuestos existentes</Text>
+                  <Text style={[styles.cardText, cardTextThemeStyle]}>Consulta piezas registradas, detecta faltantes y selecciona una para editar.</Text>
+                </View>
+                <View style={[styles.filterBar, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+                  <View style={styles.navRow}>
+                    {[
+                      { id: "all", label: "Todo inventario" },
+                      { id: "low", label: "Stock bajo" },
+                    ].map((filter) => (
+                      <Pressable
+                        key={filter.id}
+                        style={[
+                          styles.navButton,
+                          { backgroundColor: palette.secondary, borderColor: palette.border },
+                          inventoryStockFilter === filter.id && { backgroundColor: palette.primary, borderColor: palette.primary },
+                        ]}
+                        onPress={() => setInventoryStockFilter(filter.id as "all" | "low")}
+                      >
+                        <Text style={[styles.navText, { color: palette.text }, inventoryStockFilter === filter.id && { color: palette.primaryText }]}>{filter.label}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
                 {sidebarEnabled ? (
                   <View style={[styles.tableHeaderRow, { backgroundColor: palette.surfaceAlt, borderColor: palette.border }]}>
                     <Text style={[styles.tableHeaderText, { color: palette.textMuted, flex: 1.5 }]}>Repuesto</Text>
@@ -1517,6 +1772,12 @@ function AppContent() {
                 )}
               </View>
               <View style={[styles.responsiveColumn, { width: splitColumnWidth }]}>
+                <View style={[styles.sectionPanelHeader, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+                  <Text style={[styles.cardTitle, cardTitleThemeStyle]}>{inventoryForm.id ? "Edicion de repuesto" : "Nuevo repuesto"}</Text>
+                  <Text style={[styles.cardText, cardTextThemeStyle]}>
+                    {inventoryForm.id ? "Actualiza cantidades, costo o proveedor del repuesto seleccionado." : "Registra un repuesto nuevo sin mezclarlo con el listado operativo."}
+                  </Text>
+                </View>
                 <View style={[styles.formCard, cardSurfaceStyle]}>
                   <Text style={[styles.cardTitle, cardTitleThemeStyle]}>{inventoryForm.id ? "Editar repuesto" : "Nuevo repuesto"}</Text>
                   <TextInput style={[styles.input, inputThemeStyle]} placeholderTextColor={placeholderColor} value={inventoryForm.name} onChangeText={(v) => setInventoryForm({ ...inventoryForm, name: v })} placeholder="Nombre" />
@@ -1560,18 +1821,26 @@ function AppContent() {
           </View>
         )}
 
-          {view === "settings" && (
+        {view === "settings" && (
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, cardTitleThemeStyle]}>Negocio</Text>
             <View style={styles.responsiveRow}>
             {settingsForm && (
               <View style={[styles.formCard, cardSurfaceStyle, { width: splitColumnWidth }]}>
+                <View style={[styles.sectionPanelHeader, { backgroundColor: palette.surfaceAlt, borderColor: palette.border }]}>
+                  <Text style={[styles.cardTitle, cardTitleThemeStyle]}>Identidad del negocio</Text>
+                  <Text style={[styles.cardText, cardTextThemeStyle]}>Configura nombre comercial, contacto y datos que apareceran en tickets.</Text>
+                </View>
                 <TextInput style={[styles.input, inputThemeStyle]} placeholderTextColor={placeholderColor} value={settingsForm.businessName} onChangeText={(value) => setSettingsForm({ ...settingsForm, businessName: value })} placeholder="Nombre del negocio" />
                 <TextInput style={[styles.input, inputThemeStyle]} placeholderTextColor={placeholderColor} value={settingsForm.branchName} onChangeText={(value) => setSettingsForm({ ...settingsForm, branchName: value })} placeholder="Sucursal" />
                 <TextInput style={[styles.input, inputThemeStyle]} placeholderTextColor={placeholderColor} value={settingsForm.phone} onChangeText={(value) => setSettingsForm({ ...settingsForm, phone: value })} placeholder="Telefono" keyboardType="phone-pad" />
                 <TextInput style={[styles.input, inputThemeStyle]} placeholderTextColor={placeholderColor} value={settingsForm.whatsapp} onChangeText={(value) => setSettingsForm({ ...settingsForm, whatsapp: value })} placeholder="WhatsApp" keyboardType="phone-pad" />
                 <TextInput style={[styles.input, inputThemeStyle]} placeholderTextColor={placeholderColor} value={settingsForm.address} onChangeText={(value) => setSettingsForm({ ...settingsForm, address: value })} placeholder="Direccion" />
                 <TextInput style={[styles.input, inputThemeStyle]} placeholderTextColor={placeholderColor} value={settingsForm.ticketHeader} onChangeText={(value) => setSettingsForm({ ...settingsForm, ticketHeader: value })} placeholder="Encabezado de ticket" />
+                <View style={[styles.sectionPanelHeader, { backgroundColor: palette.surfaceAlt, borderColor: palette.border }]}>
+                  <Text style={[styles.cardTitle, cardTitleThemeStyle]}>Preferencias</Text>
+                  <Text style={[styles.cardText, cardTextThemeStyle]}>Controla el tema y la exposicion del seguimiento al cliente.</Text>
+                </View>
                 <View style={styles.switchRow}>
                   <View style={styles.switchCopy}>
                     <Text style={[styles.cardTitle, cardTitleThemeStyle]}>Modo oscuro</Text>
@@ -1593,12 +1862,20 @@ function AppContent() {
             )}
 
               <View style={[styles.responsiveColumn, { width: splitColumnWidth }]}>
-                <Text style={[styles.sectionTitle, cardTitleThemeStyle]}>Usuarios</Text>
-                <Text style={[styles.cardText, cardTextThemeStyle]}>Cada usuario nuevo recibe un espacio independiente de ordenes, inventario y configuracion.</Text>
+                <View style={[styles.sectionPanelHeader, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+                  <Text style={[styles.cardTitle, cardTitleThemeStyle]}>Usuarios y accesos</Text>
+                  <Text style={[styles.cardText, cardTextThemeStyle]}>Gestiona aprobaciones, cuentas activas y nuevos accesos del sistema.</Text>
+                </View>
                 {visibleUsers.map((user) => (
                   <View key={user.id} style={[styles.listCard, cardSurfaceStyle]}>
-                    <Text style={[styles.cardTitle, cardTitleThemeStyle]}>{user.name}</Text>
-                    <Text style={[styles.cardText, cardTextThemeStyle]}>{user.email} - {user.role} - {user.active ? "Activo" : "Pendiente"}</Text>
+                    <View style={styles.orderRowHead}>
+                      <Text style={[styles.cardTitle, cardTitleThemeStyle]}>{user.name}</Text>
+                      <View style={[styles.statusPill, { backgroundColor: user.active ? palette.overlay : "#fde68a" }]}>
+                        <Text style={[styles.statusPillText, { color: user.active ? palette.primary : "#92400e" }]}>{user.active ? "Activo" : "Pendiente"}</Text>
+                      </View>
+                    </View>
+                    <Text style={[styles.cardText, cardTextThemeStyle]}>{user.email}</Text>
+                    <Text style={[styles.cardText, cardTextThemeStyle]}>{user.role}</Text>
                     {isAdmin && (
                       <View style={styles.navRow}>
                         {!user.active && (
@@ -1621,7 +1898,10 @@ function AppContent() {
 
                 {isAdmin ? (
                   <View style={[styles.formCard, cardSurfaceStyle]}>
-                    <Text style={[styles.cardTitle, cardTitleThemeStyle]}>Nuevo usuario</Text>
+                    <View style={[styles.sectionPanelHeader, { backgroundColor: palette.surfaceAlt, borderColor: palette.border }]}>
+                      <Text style={[styles.cardTitle, cardTitleThemeStyle]}>Alta manual de usuario</Text>
+                      <Text style={[styles.cardText, cardTextThemeStyle]}>Crea accesos internos desde administracion cuando no quieras usar el registro publico.</Text>
+                    </View>
                     <TextInput style={[styles.input, inputThemeStyle]} placeholderTextColor={placeholderColor} value={newUser.name} onChangeText={(v) => setNewUser({ ...newUser, name: v })} placeholder="Nombre" />
                     <TextInput style={[styles.input, inputThemeStyle]} placeholderTextColor={placeholderColor} value={newUser.email} onChangeText={(v) => setNewUser({ ...newUser, email: v })} placeholder="Correo" />
                     <TextInput style={[styles.input, inputThemeStyle]} placeholderTextColor={placeholderColor} value={newUser.role} onChangeText={(v) => setNewUser({ ...newUser, role: v })} placeholder="Rol" />
@@ -1980,6 +2260,13 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     gap: 4,
   },
+  filterBar: {
+    borderRadius: 18,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    gap: 10,
+  },
   responsiveRow: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -2070,6 +2357,26 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 10,
+  },
+  progressStack: {
+    gap: 12,
+  },
+  progressItem: {
+    gap: 6,
+  },
+  progressHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  progressTrack: {
+    height: 10,
+    borderRadius: 999,
+    overflow: "hidden",
+  },
+  progressFill: {
+    height: "100%",
+    borderRadius: 999,
   },
   detailChip: {
     minWidth: 140,
