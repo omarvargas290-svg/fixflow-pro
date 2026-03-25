@@ -3,15 +3,22 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const { URL } = require("url");
+const { createPersistence } = require("./db");
 
 const port = Number(process.env.PORT || 3000);
 const root = __dirname;
 const dataDir = path.join(root, "data");
-const usersFile = path.join(dataDir, "users.json");
-const storesDir = path.join(dataDir, "stores");
 const authSecretFile = path.join(dataDir, "auth-secret.txt");
 const tokenTtlMs = 1000 * 60 * 60 * 24 * 7;
 const loginThrottle = new Map();
+
+function corsHeaders() {
+  return {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  };
+}
 
 const defaultUsers = {
   defaultUserId: "USR-01",
@@ -25,23 +32,52 @@ function userStoreTemplate(user) {
   return {
     ownerUserId: user.id,
     settings: {
-      businessName: "FixFlow Pro",
-      branchName: `${user.name} - Sucursal Centro`,
-      phone: "+52 55 4567 1122",
-      whatsapp: "+52 55 4567 1122",
-      address: "Av. Reforma 245, Ciudad de Mexico",
+      businessName: "",
+      branchName: "",
+      phone: "",
+      whatsapp: "",
+      address: "",
       currency: "MXN",
       language: "es-MX",
       publicTracking: true,
       lowStockAlert: 5,
-      ticketHeader: "FixFlow Pro | Taller especializado",
+      ticketHeader: "",
       whatsappTemplate: "Hola {{cliente}}, tu equipo {{modelo}} cambio a estado {{estado}}."
     },
     inventory: [
       { id: "INV-101", name: "Pantalla OLED iPhone 13 Pro", sku: "SCR-I13P-001", category: "Pantallas", stock: 2, minStock: 4, cost: 2490, supplierId: "SUP-01" }
     ],
     suppliers: [
-      { id: "SUP-01", name: "Global Tech Parts", specialty: "Pantallas y tapas", distance: "0.8 km", rating: 4.8, phone: "+52 55 1100 2233" }
+      {
+        id: "SUP-01",
+        name: "Capital Movil - Matriz Bolivar",
+        specialty: "Pantallas, herramientas y refacciones",
+        distance: "Centro Historico CDMX",
+        rating: 4.8,
+        phone: "56 3621 6962",
+        address: "Simon Bolivar 85, Centro Historico, CDMX",
+        website: "https://www.capitalmovil.com.mx/pages/sucursales"
+      },
+      {
+        id: "SUP-02",
+        name: "Capital Movil - Plaza Central",
+        specialty: "Refacciones y accesorios para celulares",
+        distance: "Eje Central 87, CDMX",
+        rating: 4.7,
+        phone: "56 3353 8311",
+        address: "Plaza Central, Eje Central Lazaro Cardenas 87, Local 117-B, Centro, CDMX",
+        website: "https://www.capitalmovil.com.mx/pages/sucursales"
+      },
+      {
+        id: "SUP-03",
+        name: "IPLUS Refacciones - Salvador Meave",
+        specialty: "Displays y refacciones para smartphone",
+        distance: "Zona Meave, CDMX",
+        rating: 4.7,
+        phone: "55 7470 7607",
+        address: "Plaza Salvador Meave, Local 8B y 9B, Centro, CDMX",
+        website: "https://iplusrefacciones.com/sucursales"
+      }
     ],
     orders: [
       {
@@ -69,6 +105,8 @@ function userStoreTemplate(user) {
     ]
   };
 }
+
+const persistence = createPersistence({ root, defaultUsers, userStoreTemplate });
 
 function hashPassword(password, salt = crypto.randomBytes(16).toString("hex")) {
   const hash = crypto.scryptSync(password, salt, 64).toString("hex");
@@ -161,44 +199,30 @@ function migrateUsers(registry) {
 
 function ensureData() {
   if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
-  if (!fs.existsSync(storesDir)) fs.mkdirSync(storesDir, { recursive: true });
   if (!fs.existsSync(authSecretFile)) fs.writeFileSync(authSecretFile, crypto.randomBytes(32).toString("hex"));
-  if (!fs.existsSync(usersFile)) fs.writeFileSync(usersFile, JSON.stringify(defaultUsers, null, 2));
-  const registry = migrateUsers(JSON.parse(fs.readFileSync(usersFile, "utf8")));
-  registry.users.forEach((user) => {
-    const file = storePath(user.id);
-    if (!fs.existsSync(file)) fs.writeFileSync(file, JSON.stringify(userStoreTemplate(user), null, 2));
-  });
-}
-
-function storePath(userId) {
-  return path.join(storesDir, `${userId}.json`);
+  persistence.ensureData();
 }
 
 function readUsers() {
-  ensureData();
-  return migrateUsers(JSON.parse(fs.readFileSync(usersFile, "utf8")));
+  return migrateUsers(persistence.readUsers());
 }
 
 function writeUsers(data, ensure = true) {
   if (ensure) ensureData();
-  fs.writeFileSync(usersFile, JSON.stringify(data, null, 2));
+  persistence.writeUsers(data);
 }
 
 function readStore(userId) {
-  ensureData();
-  const file = storePath(userId);
-  if (!fs.existsSync(file)) return null;
-  return JSON.parse(fs.readFileSync(file, "utf8"));
+  return persistence.readStore(userId);
 }
 
 function writeStore(userId, data) {
-  ensureData();
-  fs.writeFileSync(storePath(userId), JSON.stringify(data, null, 2));
+  persistence.writeStore(userId, data);
 }
 
 function sendJson(res, status, data) {
   res.writeHead(status, {
+    ...corsHeaders(),
     "Content-Type": "application/json; charset=utf-8",
     "Cache-Control": "no-store",
     "X-Content-Type-Options": "nosniff"
@@ -207,7 +231,7 @@ function sendJson(res, status, data) {
 }
 
 function sendNoContent(res) {
-  res.writeHead(204, { "Cache-Control": "no-store" });
+  res.writeHead(204, { ...corsHeaders(), "Cache-Control": "no-store" });
   res.end();
 }
 
@@ -230,6 +254,7 @@ function serveFile(res, filePath) {
       return;
     }
     res.writeHead(200, {
+      ...corsHeaders(),
       "Content-Type": contentType(filePath),
       "X-Content-Type-Options": "nosniff"
     });
@@ -471,8 +496,7 @@ const server = http.createServer(async (req, res) => {
     if (!user) return sendJson(res, 404, { ok: false });
     registry.users = registry.users.filter((item) => item.id !== userId);
     writeUsers(registry);
-    const file = storePath(userId);
-    if (fs.existsSync(file)) fs.unlinkSync(file);
+    persistence.deleteStore(userId);
     return sendJson(res, 200, { ok: true });
   }
 

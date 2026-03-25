@@ -2,48 +2,50 @@
 
 ## Requisitos
 
-- Hosting Node.js o VPS con HTTPS
-- Dominio o subdominio apuntando al servidor
+- Hosting Node.js o Render Web Service para la API
+- Hosting estatico o Render Static Site para la web app
+- HTTPS
 
-## Archivos principales
+## Backend actual
 
-Publica completos estos archivos y carpetas:
+La API principal corre desde:
 
-- `index.html`
-- `styles.css`
-- `app.js`
-- `manifest.webmanifest`
-- `sw.js`
-- `icon-192.png`
-- `icon-512.png`
 - `server.js`
 - `package.json`
-- `data/users.json`
-- `data/stores/`
+- `data/fixflow.sqlite`
 
-## Ejecucion
+La migracion desde los JSON viejos ya es automatica. Los archivos `data/users.json` y `data/stores/*.json` quedan como respaldo/import inicial.
 
-1. Instala Node.js 18 o superior.
-2. En la raiz del proyecto ejecuta `npm start`.
-3. Publica el puerto del proceso detras de HTTPS.
+## Ejecutar local
 
-## Recomendado
+```powershell
+cd "C:\Users\HOGAR\Desktop\stitch_nueva_orden_de_servicio"
+npm start
+```
 
-- Render, Railway, Fly.io, VPS o cualquier hosting Node
-- HTTPS obligatorio
-- Subdominio sugerido: `app.tudominio.com`
+## Web app Expo
 
-## Nota
+La web app sale desde:
 
-Ahora cada usuario tiene su propia base de datos JSON dentro de `data/stores/<userId>.json`.
+- `expo-mobile/`
 
-- Registro global de usuarios: `data/users.json`
-- Base independiente por usuario: `data/stores/USR-XX.json`
-- Las sesiones y filtros siguen siendo locales por navegador
+Build local:
 
-## Expo / APK
+```powershell
+cd "C:\Users\HOGAR\Desktop\stitch_nueva_orden_de_servicio\expo-mobile"
+npm run build:web
+```
 
-Este proyecto actualmente es una app web/PWA, no un proyecto Expo React Native.
+Salida:
 
-- No genera APK de Expo de forma directa en su estado actual
-- Para obtener APK por Expo hay que migrarlo a un proyecto Expo y luego compilar con EAS Build
+- `expo-mobile/dist/`
+
+## Produccion recomendada
+
+- API: Render Web Service
+- Web app: Render Static Site
+
+Documentacion especifica:
+
+- `expo-mobile/RENDER_WEB.md`
+- `RENDER_SETUP.md`
