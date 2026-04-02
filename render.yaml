@@ -2,6 +2,7 @@ services:
   - type: web
     name: fixflow-saas-api
     runtime: node
+    plan: free
     rootDir: fixflow-saas/apps/api
     buildCommand: npm install
     startCommand: npm start
@@ -38,5 +39,6 @@ services:
 
 databases:
   - name: fixflow-saas-db
+    plan: free
     databaseName: fixflow_saas
     user: fixflow_saas_user
