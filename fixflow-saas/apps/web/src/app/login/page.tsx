@@ -8,8 +8,8 @@ import { saveSession } from "@/lib/session";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("admin@demo.fixflow.app");
-  const [password, setPassword] = useState("Admin2026!");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -79,7 +79,7 @@ export default function LoginPage() {
         <section className="login-card">
           <span className="eyebrow">Acceso seguro</span>
           <h2>Inicia sesion</h2>
-          <p>Usa el ambiente demo del MVP para validar flujos y pantallas.</p>
+          <p>Ingresa tus datos para acceder al panel de control.</p>
 
           <form className="form-stack" onSubmit={handleSubmit}>
             <div className="field">
@@ -87,6 +87,7 @@ export default function LoginPage() {
               <input
                 id="email"
                 type="email"
+                placeholder="correo@negocio.com"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
               />
@@ -97,6 +98,7 @@ export default function LoginPage() {
               <input
                 id="password"
                 type="password"
+                placeholder="Tu contrasena"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
               />
