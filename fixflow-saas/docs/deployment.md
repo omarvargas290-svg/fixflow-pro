@@ -55,7 +55,7 @@
 
 - Tipo: `Web Service`
 - Root Directory: `fixflow-saas/apps/api`
-- Build Command: `npm install`
+- Build Command: `npm install && npx prisma generate && npx prisma migrate deploy && node prisma/seed.js`
 - Start Command: `npm start`
 
 ### Variables minimas
@@ -84,19 +84,17 @@ BILLING_SUPPORT_WHATSAPP=+525500000000
 
 ### Migraciones
 
-Dentro del servicio o en shell remoto:
+En este blueprint las migraciones y el seed demo se ejecutan durante el build del servicio.
 
-```bash
-npx prisma migrate deploy
-```
+Eso resuelve una limitacion importante del plan free de Render:
 
-Para entorno demo:
+- no hay shell remoto
+- no hay one-off jobs
 
-```bash
-node prisma/seed.js
-```
+Si despues quieres produccion sin datos demo:
 
-No uses `seed` en produccion si no quieres datos de ejemplo.
+1. quita `&& node prisma/seed.js` del `buildCommand`
+2. vuelve a desplegar
 
 ## Despliegue de la web en Vercel
 
