@@ -28,18 +28,36 @@ const allowedOrigins = (env.APP_ORIGINS || env.APP_ORIGIN)
   .map((origin) => origin.trim())
   .filter(Boolean);
 
-app.use(
-  cors({
-    origin(origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
+function originMatchesPattern(origin, pattern) {
+  if (!pattern.includes("*")) {
+    return origin === pattern;
+  }
 
-      return callback(new Error("Origen no permitido por CORS."));
-    },
-    credentials: false
-  })
-);
+  const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*");
+  return new RegExp(`^${escaped}$`).test(origin);
+}
+
+function isAllowedOrigin(origin) {
+  if (!origin) {
+    return true;
+  }
+
+  return allowedOrigins.some((pattern) => originMatchesPattern(origin, pattern));
+}
+
+const corsOptions = {
+  origin(origin, callback) {
+    if (isAllowedOrigin(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(null, false);
+  },
+  credentials: false
+};
+
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 app.use(helmet());
 app.use(express.json({ limit: "1mb" }));
 app.use(morgan("dev"));
