@@ -1,0 +1,188 @@
+openapi: 3.1.0
+info:
+  title: FixFlow SaaS API
+  version: 0.2.0
+  description: API REST MVP y fase 2 para talleres de reparacion.
+servers:
+  - url: http://localhost:4000/api/v1
+paths:
+  /auth/login:
+    post:
+      summary: Iniciar sesion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+      responses:
+        "200":
+          description: Sesion iniciada
+  /tenant/profile:
+    get:
+      summary: Obtener perfil del tenant
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Perfil del tenant
+    put:
+      summary: Actualizar branding y datos del tenant
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Perfil actualizado
+  /branches:
+    get:
+      summary: Listar sucursales
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Lista de sucursales
+    post:
+      summary: Crear sucursal
+      security:
+        - bearerAuth: []
+      responses:
+        "201":
+          description: Sucursal creada
+  /subscriptions/current:
+    get:
+      summary: Obtener estado actual de suscripcion
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Estado de suscripcion
+  /subscriptions/invoices:
+    get:
+      summary: Listar invoices de suscripcion
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Lista de invoices
+    post:
+      summary: Crear invoice de suscripcion
+      security:
+        - bearerAuth: []
+      responses:
+        "201":
+          description: Invoice creada
+  /subscriptions/invoices/{id}/report-payment:
+    post:
+      summary: Reportar pago manual por transferencia
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Pago reportado
+  /dashboard/summary:
+    get:
+      summary: Resumen general del dashboard
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Metricas del tenant
+  /customers:
+    get:
+      summary: Listar clientes
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: search
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Lista de clientes
+    post:
+      summary: Crear cliente
+      security:
+        - bearerAuth: []
+      responses:
+        "201":
+          description: Cliente creado
+  /service-orders:
+    get:
+      summary: Listar ordenes de servicio
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Lista de ordenes
+    post:
+      summary: Crear orden de servicio
+      security:
+        - bearerAuth: []
+      responses:
+        "201":
+          description: Orden creada
+  /inventory/items:
+    get:
+      summary: Listar inventario
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Lista de items
+    post:
+      summary: Crear item de inventario
+      security:
+        - bearerAuth: []
+      responses:
+        "201":
+          description: Item creado
+  /purchase-orders:
+    get:
+      summary: Listar compras
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Lista de compras
+    post:
+      summary: Crear orden de compra
+      security:
+        - bearerAuth: []
+      responses:
+        "201":
+          description: Compra creada
+  /users:
+    get:
+      summary: Listar usuarios del tenant
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Lista de usuarios
+    post:
+      summary: Crear usuario
+      security:
+        - bearerAuth: []
+      responses:
+        "201":
+          description: Usuario creado
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
