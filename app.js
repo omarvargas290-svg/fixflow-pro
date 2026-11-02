@@ -181,7 +181,8 @@ function renderOrders() {
 }
 
 function renderNewOrder() {
-  return shell("Nueva orden", "Alta de reparacion", `<section class="panel"><form id="new-order-form" class="new-order-form"><div class="split"><div class="field"><label>Cliente</label><input name="customer" required></div><div class="field"><label>Telefono</label><input name="phone" required></div></div><div class="split"><div class="field"><label>WhatsApp</label><input name="whatsapp"></div><div class="field"><label>Marca</label><input name="brand" required></div></div><div class="split"><div class="field"><label>Modelo</label><input name="model" required></div><div class="field"><label>IMEI</label><input name="imei"></div></div><div class="split"><div class="field"><label>Tecnico</label><input name="technician" value="${esc(state.session.user.name)}" required></div><div class="field"><label>Anticipo</label><input name="deposit" type="number" value="0"></div></div><div class="field"><label>Total estimado</label><input name="estimatedTotal" type="number" value="0"></div><div class="field"><label>Falla</label><textarea name="issue" rows="4" required></textarea></div><button class="btn" type="submit">Crear orden</button></form></section>`);
+  const voiceTools = `<section class="panel" style="margin-bottom:16px"><h3>🎙 Asistente de ordenes por voz — Fase 1</h3><p class="muted">Dicta: Cliente Juan Perez, telefono 8123456789, equipo Samsung A56, falla pantalla rota, costo 1200, anticipo 300.</p><textarea id="voice-transcript" rows="3" placeholder="Dicta o escribe los datos..."></textarea><div class="toolbar"><button class="btn" type="button" id="voice-start">🎙 Iniciar dictado</button><button class="btn" type="button" id="voice-parse">Interpretar orden</button><button class="ghost-btn" type="button" id="voice-stop">Detener</button></div><p id="voice-feedback" class="muted" role="status">Revisa los datos antes de crear la orden.</p></section>`;
+  return shell("Nueva orden", "Alta de reparacion", voiceTools + `<section class="panel"><form id="new-order-form" class="new-order-form"><div class="split"><div class="field"><label>Cliente</label><input name="customer" required></div><div class="field"><label>Telefono</label><input name="phone" required></div></div><div class="split"><div class="field"><label>WhatsApp</label><input name="whatsapp"></div><div class="field"><label>Marca</label><input name="brand" required></div></div><div class="split"><div class="field"><label>Modelo</label><input name="model" required></div><div class="field"><label>IMEI</label><input name="imei"></div></div><div class="split"><div class="field"><label>Tecnico</label><input name="technician" value="${esc(state.session.user.name)}" required></div><div class="field"><label>Anticipo</label><input name="deposit" type="number" value="0"></div></div><div class="field"><label>Total estimado</label><input name="estimatedTotal" type="number" value="0"></div><div class="field"><label>Falla</label><textarea name="issue" rows="4" required></textarea></div><button class="btn" type="submit">Crear orden</button></form></section>`);
 }
 
 function renderInventory() {
@@ -259,6 +260,34 @@ function bind() {
     state.selectedOrderId = state.orders[0] ? state.orders[0].id : "";
     saveLocal();
     render();
+  };
+
+  const transcriptBox = document.getElementById("voice-transcript");
+  const voiceFeedback = document.getElementById("voice-feedback");
+  let recognition = null;
+  const startVoice = document.getElementById("voice-start");
+  if (startVoice) startVoice.onclick = () => {
+    const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!Speech) { voiceFeedback.textContent = "El navegador no admite dictado. Puedes escribir o pegar el texto."; return; }
+    recognition = new Speech();
+    recognition.lang = "es-MX";
+    recognition.interimResults = false;
+    recognition.onresult = (event) => { transcriptBox.value = Array.from(event.results).map(r => r[0].transcript).join(" "); voiceFeedback.textContent = "Dictado capturado: interpreta y revisa."; };
+    recognition.onerror = () => { voiceFeedback.textContent = "No se pudo usar el microfono. Revisa los permisos y usa HTTPS."; };
+    try { recognition.start(); voiceFeedback.textContent = "Escuchando..."; } catch { voiceFeedback.textContent = "No se pudo iniciar el microfono."; }
+  };
+  const stopVoice = document.getElementById("voice-stop");
+  if (stopVoice) stopVoice.onclick = () => { if (recognition) recognition.stop(); voiceFeedback.textContent = "Dictado detenido."; };
+  const parseVoice = document.getElementById("voice-parse");
+  if (parseVoice) parseVoice.onclick = () => {
+    if (!window.FixFlowVoiceParser) { voiceFeedback.textContent = "No se cargo el interpretador."; return; }
+    const { order, missing } = window.FixFlowVoiceParser.parseVoiceOrder(transcriptBox.value);
+    const form = document.getElementById("new-order-form");
+    for (const [key, value] of Object.entries(order)) {
+      const input = form.elements.namedItem(key);
+      if (input && value !== "" && value !== 0) input.value = String(value);
+    }
+    voiceFeedback.textContent = missing.length ? "Revisa o completa: " + missing.join(", ") : "Datos preparados. Confirma y presiona Crear orden.";
   };
 
   const orderForm = document.getElementById("new-order-form");
